@@ -1,4 +1,4 @@
-package com.example.CRMTicketing.DTO;
+package com.example.CRMTicketing.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -7,18 +7,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
-public class AgentDTO {
-    private Long id;
-    @NotBlank(message = "Agent name is required")
-    @Size(min = 3, max = 50, message = "Name must be between 3 and 50 characters")
+public class AgentRequestDTO {
+    @NotBlank(message = "Name is required")
+    @Size(min = 3, max = 50)
     private String name;
     @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
+    @Email(message = "Invalid email")
     private String email;
-    @NotBlank(message ="Department is required")
-    private String department;
     private boolean available;
 }

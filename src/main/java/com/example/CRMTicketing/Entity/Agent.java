@@ -22,7 +22,7 @@ public class Agent {
     private String agentName;
     @Email
     private String email;
-    private String availabilityStatus;
+    private Boolean availabilityStatus;
     @Column(name = "active_ticket_count")
     private Integer activeTicketCount;
     @OneToMany(mappedBy = "agent",

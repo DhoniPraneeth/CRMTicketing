@@ -1,4 +1,4 @@
-package com.example.CRMTicketing.DTO;
+package com.example.CRMTicketing.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,13 +10,15 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CommentDTO {
-    private Long id;
+public class CommentRequestDTO {
+
     @NotBlank(message = "Comment message is required")
-    @Size(min = 2, max = 500, message = "Comment must be between 2 and 500 characters")
+    @Size(min = 2, max = 500)
     private String message;
-    @NotNull(message = "Ticket ID is required")
+
+    @NotNull(message = "Ticket ID required")
     private Long ticketId;
-    @NotNull(message = "Agent ID is required")
+
+    @NotNull(message = "Agent ID required")
     private Long agentId;
 }
