@@ -56,4 +56,9 @@ public class TicketDaoImpl implements TicketDao {
             getSession().remove(ticket);
         }
     }
+
+    @Override
+    public void update(Ticket existing) {
+        getSession().merge(existing);
+    }
 }

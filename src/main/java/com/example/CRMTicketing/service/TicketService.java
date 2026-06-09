@@ -5,8 +5,9 @@ import com.example.CRMTicketing.Dao.TicketDao;
 import com.example.CRMTicketing.Entity.Agent;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.TicketStatus;
-import com.example.CRMTicketing.dto.TicketDTO;
-import com.example.CRMTicketing.dto.TicketResponseDTO;
+import com.example.CRMTicketing.dto.*;
+import com.example.CRMTicketing.dto.response.TicketResponseDTO;
+import com.example.CRMTicketing.dto.request.TicketRequestDTO;
 import com.example.CRMTicketing.mapper.TicketMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +24,7 @@ public class TicketService{
     private final TicketMapper ticketMapper;
 
     public TicketResponseDTO save(
-            TicketDTO dto) {
-
+            TicketRequestDTO dto) {
         Ticket ticket =
                 ticketMapper.toEntity(dto);
 
@@ -33,8 +33,7 @@ public class TicketService{
         return ticketMapper
                 .toResponseDTO(ticket);
     }
-
-    @Override
+    
     public TicketResponseDTO getById(
             Long id) {
 
@@ -43,7 +42,7 @@ public class TicketService{
                         ticketDao.getById(id));
     }
 
-    @Override
+   
     public List<TicketResponseDTO>
     getAllTickets() {
 
@@ -54,10 +53,10 @@ public class TicketService{
                 .collect(Collectors.toList());
     }
 
-    @Override
+    
     public TicketResponseDTO update(
             Long id,
-            TicketDTO dto) {
+            TicketRequestDTO dto) {
 
         Ticket existing =
                 ticketDao.getById(id);
@@ -77,14 +76,14 @@ public class TicketService{
                 .toResponseDTO(existing);
     }
 
-    @Override
+    
     public void delete(
             Long id) {
 
         ticketDao.delete(id);
     }
 
-    @Override
+    
     public void assignAgent(
             Long ticketId,
             Long agentId) {
@@ -100,7 +99,7 @@ public class TicketService{
         ticketDao.update(ticket);
     }
 
-    @Override
+    
     public void resolveTicket(
             Long ticketId) {
 
@@ -113,7 +112,7 @@ public class TicketService{
         ticketDao.update(ticket);
     }
 
-    @Override
+    
     public void closeTicket(
             Long ticketId) {
 
