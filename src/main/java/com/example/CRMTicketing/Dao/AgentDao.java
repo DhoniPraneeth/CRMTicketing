@@ -13,4 +13,6 @@ public interface AgentDao {
     List<Agent> getAllAgents();
 
     void delete(Long id);
+
+    void update(Agent existing);
 }

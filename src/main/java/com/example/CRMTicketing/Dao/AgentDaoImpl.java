@@ -39,4 +39,9 @@ public class AgentDaoImpl implements AgentDao{
             getSession().remove(a);
         }
     }
+
+    @Override
+    public void update(Agent existing) {
+        getSession().merge(existing);
+    }
 }
