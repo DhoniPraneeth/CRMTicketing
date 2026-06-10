@@ -7,12 +7,15 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.UniqueElements;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class TicketRequestDTO {
 
+    @NotBlank(message = "Id can't be blank")
+    private String ticketId;
     @NotBlank(message = "Title is required")
     @Size(min = 5, max = 100)
     private String title;

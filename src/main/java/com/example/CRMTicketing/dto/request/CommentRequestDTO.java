@@ -6,12 +6,14 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.UniqueElements;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CommentRequestDTO {
-
+    @NotBlank(message = "Enter ur comment Id")
+    private String commentId;
     @NotBlank(message = "Comment message is required")
     @Size(min = 2, max = 500)
     private String message;

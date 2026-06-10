@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TicketResponseDTO {
-
-    private Long id;
+    private String id;
     private String title;
     private String description;
     private Priority priority;

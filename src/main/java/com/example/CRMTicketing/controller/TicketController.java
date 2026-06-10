@@ -20,25 +20,21 @@ public class TicketController {
     private final TicketService ticketService;
     // Create Ticket
     @PostMapping
-    public ResponseEntity<?> createTicket(@Valid @RequestBody TicketRequestDTO dto) {
+    public ResponseEntity<?> createTicket(@RequestBody TicketRequestDTO dto) {
         ticketService.save(dto);
         return ResponseEntity.ok("Ticket Created Sucessfully");
     }
 
     // Get Ticket By Id
     @GetMapping("/{id}")
-    public ResponseEntity<?>
-    getTicketById(
-            @PathVariable
-            Long id) {
+    public ResponseEntity<?> getTicketById(@PathVariable String id) {
         return ResponseEntity.ok(
                 ticketService.getById(id));
     }
 
     // Get All Tickets
     @GetMapping
-    public ResponseEntity<List<TicketResponseDTO>>
-    getAllTickets() {
+    public ResponseEntity<List<TicketResponseDTO>> getAllTickets() {
         return ResponseEntity.ok(
                 ticketService.getAllTickets());
     }
@@ -48,7 +44,7 @@ public class TicketController {
     public ResponseEntity<TicketResponseDTO>
     updateTicket(
             @PathVariable
-            Long id,
+            String id,
 
             @Valid
             @RequestBody
@@ -58,23 +54,23 @@ public class TicketController {
 
     // Delete Ticket
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteTicket(@PathVariable Long id) {
+    public ResponseEntity<String> deleteTicket(@PathVariable String id) {
         ticketService.delete(id);
         return ResponseEntity.ok("Ticket deleted successfully");
     }
 
     // Assign Agent
     @PutMapping("/{ticketId}/assign")
-    public ResponseEntity<String> assignAgent(@PathVariable Long ticketId,
+    public ResponseEntity<String> assignAgent(@PathVariable String ticketId,
             @Valid @RequestBody AgentRequestDTO dto) {
-        ticketService.assignAgent(ticketId, Long.valueOf(dto.getAgentId()));
+        ticketService.assignAgent(ticketId,dto.getAgentId());
         return ResponseEntity.ok(
                 "Agent assigned successfully");
     }
 
     // Resolve Ticket
     @PutMapping("/{ticketId}/resolve")
-    public ResponseEntity<String> resolveTicket(@PathVariable Long ticketId) {
+    public ResponseEntity<String> resolveTicket(@PathVariable String ticketId) {
         ticketService.resolveTicket(ticketId);
         return ResponseEntity.ok(
                 "Ticket resolved successfully");
@@ -82,7 +78,7 @@ public class TicketController {
 
     // Close Ticket
     @PutMapping("/{ticketId}/close")
-    public ResponseEntity<String> closeTicket(@PathVariable Long ticketId) {
+    public ResponseEntity<String> closeTicket(@PathVariable String ticketId) {
         ticketService.closeTicket(ticketId);
         return ResponseEntity.ok("Ticket closed successfully");
     }

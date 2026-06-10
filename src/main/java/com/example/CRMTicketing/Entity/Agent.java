@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 public class Agent {
     @Id
-    private Integer agentId;
+    private String agentId;
     @Column(nullable = false)
     @NotNull
     private String agentName;

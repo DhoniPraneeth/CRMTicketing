@@ -34,7 +34,7 @@ public class AgentController {
     public ResponseEntity<AgentResponseDTO>
     getAgentById(
             @PathVariable
-            Long id) {
+            String id) {
 
         return ResponseEntity.ok(
                 agentService.getById(id));
@@ -51,7 +51,7 @@ public class AgentController {
     @PutMapping("/{id}")
     public ResponseEntity<AgentResponseDTO>
     updateAgent(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid
             @RequestBody
             AgentRequestDTO dto) {
@@ -63,7 +63,7 @@ public class AgentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String>
     deleteAgent(
-            @PathVariable Long id) {
+            @PathVariable String id) {
 
         agentService.delete(id);
 

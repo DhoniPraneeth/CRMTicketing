@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -21,9 +20,7 @@ public class Ticket {
     private String ticketId;
     @Column(nullable = false)
     private String title;
-    @Column(nullable = false)
     private String description;
-    @Column(nullable = false)
     private String category;
     @Enumerated(EnumType.STRING)
     private Priority priority;

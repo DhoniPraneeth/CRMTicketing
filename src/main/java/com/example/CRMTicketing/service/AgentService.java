@@ -23,13 +23,14 @@ public class AgentService {
             AgentRequestDTO dto) {
         Agent agent =
                 agentMapper.toEntity(dto);
+        agent.setAgentId("TKT" + System.currentTimeMillis());
         agentDao.save(agent);
         return agentMapper
                 .toResponseDTO(agent);
     }
 
     public AgentResponseDTO getById(
-            Long id) {
+            String id) {
         Agent agent =
                 agentDao.getById(id);
         return agentMapper
@@ -46,7 +47,7 @@ public class AgentService {
 
     
     public AgentResponseDTO update(
-            Long id,
+            String id,
             AgentRequestDTO dto) {
 
         Agent existing =
@@ -63,7 +64,7 @@ public class AgentService {
 
     
     public void delete(
-            Long id) {
+            String id) {
 
         agentDao.delete(id);
     }

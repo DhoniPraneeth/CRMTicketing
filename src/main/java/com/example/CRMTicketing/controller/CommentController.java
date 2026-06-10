@@ -26,7 +26,7 @@ public class CommentController {
     // Get Comment By Id
     @GetMapping("/{id}")
     public ResponseEntity<CommentResponseDTO>
-    getCommentById(@PathVariable Long id) {
+    getCommentById(@PathVariable String id) {
         return ResponseEntity.ok(commentService.getById(id));
     }
 
@@ -37,13 +37,13 @@ public class CommentController {
     }
     // Get Comments By Ticket Id
     @GetMapping("/ticket/{ticketId}")
-    public ResponseEntity<List<CommentResponseDTO>> getCommentsByTicketId(@PathVariable Long ticketId) {
+    public ResponseEntity<List<CommentResponseDTO>> getCommentsByTicketId(@PathVariable String ticketId) {
         return ResponseEntity.ok(commentService.getCommentsByTicketId(ticketId));
     }
 
     // Delete Comment
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteComment(@PathVariable Long id) {
+    public ResponseEntity<String> deleteComment(@PathVariable String id) {
         commentService.delete(id);
         return ResponseEntity.ok(
                 "Comment deleted successfully");

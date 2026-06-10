@@ -11,8 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AgentRequestDTO {
-    @NotBlank(message = "Name is required")
-    private Integer agentId;
+    private String agentId;
     @Size(min = 3, max = 50)
     private String name;
     @NotBlank(message = "Email is required")

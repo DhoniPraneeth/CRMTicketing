@@ -7,11 +7,12 @@ public interface TicketDao {
 
     void save(Ticket ticket);
 
-    Ticket getById(Long id);
+    Ticket getById(String id);
 
     List<Ticket> getAllTickets();
 
-    void delete(Long id);
+    void delete(String id);
 
     void update(Ticket existing);
+    List<Ticket> getActiveTickets();
 }

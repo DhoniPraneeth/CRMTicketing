@@ -8,13 +8,13 @@ public interface CommentDao {
 
     void save(Comment comment);
 
-    Comment getById(Long id);
+    Comment getById(String id);
 
     List<Comment> getAllComments();
 
-    List<Comment> getCommentsByTicketId(Long ticketId);
+    List<Comment> getCommentsByTicketId(String ticketId);
 
     void update(Comment comment);
 
-    void delete(Long id);
+    void delete(String id);
 }

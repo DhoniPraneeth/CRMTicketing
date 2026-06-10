@@ -21,7 +21,7 @@ public class AgentMapper {
 
         AgentResponseDTO dto = new AgentResponseDTO();
 
-        dto.setId(Long.valueOf(agent.getAgentId()));
+        dto.setId(agent.getAgentId());
         dto.setName(agent.getAgentName());
         dto.setEmail(agent.getEmail());
         dto.setAvailable(agent.getAvailabilityStatus());

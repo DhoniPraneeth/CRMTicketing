@@ -1,41 +1,40 @@
 package com.example.CRMTicketing.service;
 
 import com.example.CRMTicketing.Dao.AgentDao;
+import com.example.CRMTicketing.Dao.AgentDaoImpl;
 import com.example.CRMTicketing.Dao.TicketDao;
+import com.example.CRMTicketing.Dao.TicketDaoImpl;
 import com.example.CRMTicketing.Entity.Agent;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.TicketStatus;
-import com.example.CRMTicketing.dto.*;
 import com.example.CRMTicketing.dto.response.TicketResponseDTO;
 import com.example.CRMTicketing.dto.request.TicketRequestDTO;
 import com.example.CRMTicketing.mapper.TicketMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor(onConstructor_ = @__(@Autowired))
 public class TicketService{
-    private final TicketDao ticketDao;
-    private final AgentDao agentDao;
+    private final TicketDaoImpl ticketDao;
+    private final AgentDaoImpl agentDao;
     private final TicketMapper ticketMapper;
 
-    public TicketResponseDTO save(
-            TicketRequestDTO dto) {
-        Ticket ticket =
-                ticketMapper.toEntity(dto);
-
+    public TicketResponseDTO save(TicketRequestDTO dto) {
+        Ticket ticket = ticketMapper.toEntity(dto);
+        ticket.setTicketId("TKT-" + UUID.randomUUID() .toString() .substring(0, 8) .toUpperCase());
         ticketDao.save(ticket);
-
-        return ticketMapper
-                .toResponseDTO(ticket);
+        return ticketMapper.toResponseDTO(ticket);
     }
     
     public TicketResponseDTO getById(
-            Long id) {
+            String id) {
 
         return ticketMapper
                 .toResponseDTO(
@@ -55,7 +54,7 @@ public class TicketService{
 
     
     public TicketResponseDTO update(
-            Long id,
+            String id,
             TicketRequestDTO dto) {
 
         Ticket existing =
@@ -78,15 +77,15 @@ public class TicketService{
 
     
     public void delete(
-            Long id) {
+            String id) {
 
         ticketDao.delete(id);
     }
 
     
     public void assignAgent(
-            Long ticketId,
-            Long agentId) {
+            String ticketId,
+            String agentId) {
 
         Ticket ticket =
                 ticketDao.getById(ticketId);
@@ -101,7 +100,7 @@ public class TicketService{
 
     
     public void resolveTicket(
-            Long ticketId) {
+            String ticketId) {
 
         Ticket ticket =
                 ticketDao.getById(ticketId);
@@ -114,7 +113,7 @@ public class TicketService{
 
     
     public void closeTicket(
-            Long ticketId) {
+            String ticketId) {
 
         Ticket ticket =
                 ticketDao.getById(ticketId);

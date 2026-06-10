@@ -5,9 +5,11 @@ import lombok.AllArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 @AllArgsConstructor(onConstructor_ = @__(@Autowired))
 public class CommentDaoImpl implements CommentDao{
 
@@ -21,7 +23,7 @@ public class CommentDaoImpl implements CommentDao{
     }
 
     @Override
-    public Comment getById(Long id) {
+    public Comment getById(String id) {
         return getSession().get(Comment.class,id);
     }
 
@@ -31,7 +33,7 @@ public class CommentDaoImpl implements CommentDao{
     }
 
     @Override
-    public List<Comment> getCommentsByTicketId(Long ticketId) {
+    public List<Comment> getCommentsByTicketId(String ticketId) {
         return getSession()
                 .createQuery("FROM Comment c " +
                         "WHERE c.ticket.id = :ticketId",Comment.class)
@@ -44,7 +46,7 @@ public class CommentDaoImpl implements CommentDao{
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(String id) {
         Comment c=getSession().get(Comment.class,id);
         if(c!=null)
             getSession().remove(c);

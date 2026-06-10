@@ -35,7 +35,7 @@ public class CommentService {
 
     
     public CommentResponseDTO getById(
-            Long id) {
+            String id) {
 
         return commentMapper
                 .toResponseDTO(
@@ -56,7 +56,7 @@ public class CommentService {
     
     public List<CommentResponseDTO>
     getCommentsByTicketId(
-            Long ticketId) {
+            String ticketId) {
 
         return commentDao
                 .getCommentsByTicketId(
@@ -68,7 +68,7 @@ public class CommentService {
 
     
     public void delete(
-            Long id) {
+            String id) {
 
         commentDao.delete(id);
     }

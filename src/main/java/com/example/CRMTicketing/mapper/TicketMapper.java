@@ -23,7 +23,7 @@ public class TicketMapper {
 
         TicketResponseDTO dto = new TicketResponseDTO();
 
-        dto.setId(Long.valueOf(ticket.getTicketId()));
+        dto.setId(ticket.getTicketId());
         dto.setTitle(ticket.getTitle());
         dto.setDescription(ticket.getDescription());
         dto.setPriority(ticket.getPriority());
