@@ -11,6 +11,7 @@ import com.example.CRMTicketing.Enums.TicketStatus;
 import com.example.CRMTicketing.dto.response.TicketResponseDTO;
 import com.example.CRMTicketing.dto.request.TicketRequestDTO;
 import com.example.CRMTicketing.mapper.TicketMapper;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -26,6 +27,7 @@ import static com.example.CRMTicketing.Enums.Priority.*;
 
 @Service
 @AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@Transactional
 public class TicketService{
     private final TicketDaoImpl ticketDao;
     private final AgentDaoImpl agentDao;

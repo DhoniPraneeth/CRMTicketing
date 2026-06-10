@@ -5,6 +5,7 @@ import com.example.CRMTicketing.Entity.Comment;
 import com.example.CRMTicketing.dto.request.CommentRequestDTO;
 import com.example.CRMTicketing.dto.response.CommentResponseDTO;
 import com.example.CRMTicketing.mapper.CommentMapper;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@Transactional
 public class CommentService {
 
     private final CommentDaoImpl commentDao;
@@ -27,7 +29,7 @@ public class CommentService {
 
         Comment comment =
                 commentMapper.toEntity(dto);
-
+        comment.setCommentId("CMNT:"+ System.currentTimeMillis());
         commentDao.save(comment);
 
         return commentMapper.toResponseDTO(comment);

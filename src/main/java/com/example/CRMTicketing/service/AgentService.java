@@ -9,6 +9,7 @@ import com.example.CRMTicketing.Enums.TicketStatus;
 import com.example.CRMTicketing.dto.request.AgentRequestDTO;
 import com.example.CRMTicketing.dto.response.AgentResponseDTO;
 import com.example.CRMTicketing.mapper.AgentMapper;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@Transactional
 public class AgentService {
     
     private final AgentDaoImpl agentDao;
@@ -26,7 +28,7 @@ public class AgentService {
     private final TicketDaoImpl ticketDao;
     public AgentResponseDTO save(AgentRequestDTO dto) {
         Agent agent = agentMapper.toEntity(dto);
-        agent.setAgentId("TKT" + System.currentTimeMillis());
+        agent.setAgentId("AGT" + System.currentTimeMillis());
         agentDao.save(agent);
         return agentMapper.toResponseDTO(agent);
     }
