@@ -20,7 +20,7 @@ public class TicketController {
     private final TicketService ticketService;
     // Create Ticket
     @PostMapping
-    public ResponseEntity<?> createTicket(@RequestBody TicketRequestDTO dto) {
+    public ResponseEntity<?> createTicket(@Valid @RequestBody TicketRequestDTO dto) {
         ticketService.save(dto);
         return ResponseEntity.ok("Ticket Created Sucessfully");
     }

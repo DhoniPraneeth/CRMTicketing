@@ -49,13 +49,7 @@ public class AgentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AgentResponseDTO>
-    updateAgent(
-            @PathVariable String id,
-            @Valid
-            @RequestBody
-            AgentRequestDTO dto) {
-
+    public ResponseEntity<AgentResponseDTO> updateAgent(@PathVariable String id, @Valid @RequestBody AgentRequestDTO dto) {
         return ResponseEntity.ok(
                 agentService.update(id, dto));
     }
@@ -70,4 +64,15 @@ public class AgentController {
         return ResponseEntity.ok(
                 "Agent deleted successfully");
     }
+    @GetMapping("/{id}/workload")
+    public ResponseEntity<Integer> getAgentWorkload(@PathVariable String id) {
+        return ResponseEntity.ok(
+                agentService.getAgentWorkload(id)
+        );
+    }
+    @GetMapping("/available")
+    public ResponseEntity<List<AgentResponseDTO>> getAvailableAgents() {
+        return ResponseEntity.ok(agentService.getAvailableAgents());
+    }
+
 }

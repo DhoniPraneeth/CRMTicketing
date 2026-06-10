@@ -209,7 +209,6 @@ public class TicketService{
         ticketDao.update(ticket);
     }
 
-
     public void resolveTicket(
             String ticketId) {
 
@@ -219,10 +218,26 @@ public class TicketService{
         ticket.setStatus(
                 TicketStatus.RESOLVED);
 
+        Agent agent =
+                ticket.getAgent();
+
+        if (agent != null) {
+
+            agent.setActiveTicketCount(
+                    agent.getActiveTicketCount()
+                            - 1);
+
+            agentDao.update(agent);
+        }
+
+        ticket.setUpdatedAt(
+                LocalDateTime.now());
+
         ticketDao.update(ticket);
     }
 
-    
+
+
     public void closeTicket(
             String ticketId) {
 
