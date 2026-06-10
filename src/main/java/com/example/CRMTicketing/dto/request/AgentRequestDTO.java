@@ -16,6 +16,8 @@ public class AgentRequestDTO {
     private String agentId;
     @Size(min = 3, max = 50)
     private String name;
+    @NotBlank(message = "Department is required")
+    private String Department;
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email")
     private String email;
