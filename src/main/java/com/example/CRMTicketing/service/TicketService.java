@@ -171,23 +171,45 @@ public class TicketService{
         ticketDao.delete(id);
     }
 
-    
-    public void assignAgent(
-            String ticketId,
-            String agentId) {
 
+    public void assignAgent(String ticketId, String agentId) {
         Ticket ticket =
                 ticketDao.getById(ticketId);
 
         Agent agent =
                 agentDao.getById(agentId);
 
+        // remove old agent load
+        if (ticket.getAgent() != null) {
+
+            Agent oldAgent =
+                    ticket.getAgent();
+
+            oldAgent.setActiveTicketCount(
+                    oldAgent
+                            .getActiveTicketCount()
+                            - 1);
+
+            agentDao.update(oldAgent);
+        }
+
+        // assign new agent
         ticket.setAgent(agent);
+
+        // increase workload
+        agent.setActiveTicketCount(
+                agent.getActiveTicketCount()
+                        + 1);
+
+        ticket.setStatus(
+                TicketStatus.ASSIGNED);
+
+        agentDao.update(agent);
 
         ticketDao.update(ticket);
     }
 
-    
+
     public void resolveTicket(
             String ticketId) {
 
