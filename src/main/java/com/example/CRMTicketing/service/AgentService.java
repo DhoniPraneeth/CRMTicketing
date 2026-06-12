@@ -1,116 +1,151 @@
 package com.example.CRMTicketing.service;
 
 import com.example.CRMTicketing.Dao.AgentDao;
-import com.example.CRMTicketing.Dao.AgentDaoImpl;
 import com.example.CRMTicketing.Dao.TicketDaoImpl;
 import com.example.CRMTicketing.Entity.Agent;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.TicketStatus;
-import com.example.CRMTicketing.dto.request.AgentRequestDTO;
-import com.example.CRMTicketing.dto.response.AgentResponseDTO;
+import com.example.CRMTicketing.dto.AgentDTO;
+import com.example.CRMTicketing.exception.BadRequestException;
+import com.example.CRMTicketing.exception.ResourceNotFoundException;
 import com.example.CRMTicketing.mapper.AgentMapper;
-import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 @Transactional
 public class AgentService {
-    
-    private final AgentDaoImpl agentDao;
+
+    @Qualifier("AgentRepo")
+    private final AgentDao agentDao;
     private final AgentMapper agentMapper;
     private final TicketDaoImpl ticketDao;
-    public AgentResponseDTO save(AgentRequestDTO dto) {
+
+    public AgentDTO save(AgentDTO dto) {
+        validateAgentDto(dto);
         Agent agent = agentMapper.toEntity(dto);
-        agent.setAgentId("AGT" + System.currentTimeMillis());
+        if (agent.getActiveTicketCount() == null) {
+            agent.setActiveTicketCount(0);
+        }
+        if (agent.getAvailabilityStatus() == null) {
+            agent.setAvailabilityStatus(true);
+        }
         agentDao.save(agent);
-        return agentMapper.toResponseDTO(agent);
+        return agentMapper.toDTO(agent);
     }
 
-    public AgentResponseDTO getById(String id) {
-        Agent agent =
-                agentDao.getById(id);
-        return agentMapper
-                .toResponseDTO(agent);
+    public AgentDTO getById(Long id) {
+        validateId(id, "Agent id is required");
+        Agent agent = agentDao.getById(id);
+        if (agent == null) {
+            throw new ResourceNotFoundException("Agent not found with id " + id);
+        }
+        return agentMapper.toDTO(agent);
     }
-    public List<AgentResponseDTO> getAllAgents() {
-        return agentDao
-                .getAllAgents()
-                .stream()
-                .map(agentMapper::toResponseDTO)
+
+    public List<AgentDTO> getAllAgents() {
+        return agentDao.getAllAgents().stream()
+                .map(agentMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    
-    public AgentResponseDTO update(
-            String id,
-            AgentRequestDTO dto) {
+    public AgentDTO update(Long id, AgentDTO dto) {
+        validateId(id, "Agent id is required");
+        validateAgentDto(dto);
 
-        Agent existing =
-                agentDao.getById(id);
-        existing.setAgentName(
-                dto.getName());
-        existing.setEmail(
-                dto.getEmail());
-        existing.setAvailabilityStatus(dto.isAvailable());
+        Agent existing = agentDao.getById(id);
+        if (existing == null) {
+            throw new ResourceNotFoundException("Agent not found with id " + id);
+        }
+
+        existing.setAgentName(dto.getAgentName());
+        existing.setEmail(dto.getEmail());
+        existing.setAvailabilityStatus(mapAvailability(dto.getAvaialbleStatus()));
+        if (existing.getActiveTicketCount() == null) {
+            existing.setActiveTicketCount(0);
+        }
+
         agentDao.update(existing);
-        return agentMapper.toResponseDTO(existing);
+        return agentMapper.toDTO(existing);
     }
 
-    
-    public void delete(String id) {
+    public void delete(Long id) {
+        validateId(id, "Agent id is required");
+        Agent agent = agentDao.getById(id);
+        if (agent == null) {
+            throw new ResourceNotFoundException("Agent not found with id " + id);
+        }
         agentDao.delete(id);
     }
 
-    public void resolveTicket(
-            String ticketId) {
+    public void resolveTicket(Long ticketId) {
+        validateId(ticketId, "Ticket id is required");
+        Ticket ticket = ticketDao.getById(ticketId);
+        if (ticket == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + ticketId);
+        }
 
-        Ticket ticket =
-                ticketDao.getById(ticketId);
-
-        ticket.setStatus(
-                TicketStatus.RESOLVED);
-
-        Agent agent =
-                ticket.getAgent();
-
+        ticket.setStatus(TicketStatus.RESOLVED);
+        Agent agent = ticket.getAgentId() == null ? null : agentDao.getById(ticket.getAgentId());
         if (agent != null) {
-
-            agent.setActiveTicketCount(
-                    agent.getActiveTicketCount()
-                            - 1);
-
+            agent.setActiveTicketCount(Math.max(0, safeCount(agent.getActiveTicketCount()) - 1));
             agentDao.update(agent);
         }
 
-        ticket.setUpdatedAt(
-                LocalDateTime.now());
+        ticket.setUpdatedAt(LocalDateTime.now());
         ticketDao.update(ticket);
     }
-    public Integer getAgentWorkload(
-            String agentId) {
 
-        Agent agent =
-                agentDao.getById(agentId);
-
-        return agent
-                .getActiveTicketCount();
-    }
-    public List<AgentResponseDTO> getAvailableAgents() {
-        return agentDao
-                .getAllAgents()
-                .stream()
-                .filter(agent ->
-                        "True".equalsIgnoreCase(String.valueOf(agent.getAvailabilityStatus())))
-                .map(agentMapper::toResponseDTO)
-                .toList();
+    public Integer getAgentWorkload(Long agentId) {
+        validateId(agentId, "Agent id is required");
+        Agent agent = agentDao.getById(agentId);
+        if (agent == null) {
+            throw new ResourceNotFoundException("Agent not found with id " + agentId);
+        }
+        return safeCount(agent.getActiveTicketCount());
     }
 
+    public List<AgentDTO> getAvailableAgents() {
+        return agentDao.getAllAgents().stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getAvailabilityStatus()))
+                .map(agentMapper::toDTO)
+                .collect(Collectors.toList());
+    }
 
+    private void validateAgentDto(AgentDTO dto) {
+        if (dto == null) {
+            throw new BadRequestException("Agent payload is required");
+        }
+        if (dto.getAgentName() == null || dto.getAgentName().isBlank()) {
+            throw new BadRequestException("Agent name is required");
+        }
+    }
+
+    private boolean mapAvailability(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase();
+        return "available".equals(normalized)
+                || "avaialble".equals(normalized)
+                || "true".equals(normalized);
+    }
+
+    private int safeCount(Integer count) {
+        return count == null ? 0 : count;
+    }
+
+    private void validateId(Long id, String message) {
+        if (id == null) {
+            throw new BadRequestException(message);
+        }
+    }
 }

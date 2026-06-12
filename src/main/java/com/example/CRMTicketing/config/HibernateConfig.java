@@ -14,45 +14,29 @@ import java.util.Properties;
 
 @Configuration
 @EnableTransactionManagement
-@RequiredArgsConstructor(onConstructor =@__(@Autowired) )
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class HibernateConfig {
 
     private final DataSource dataSource;
 
     @Bean
     public LocalSessionFactoryBean sessionFactory() {
-
-        LocalSessionFactoryBean factory =
-                new LocalSessionFactoryBean();
-
+        LocalSessionFactoryBean factory = new LocalSessionFactoryBean();
         factory.setDataSource(dataSource);
+        factory.setPackagesToScan("com.example.CRMTicketing.Entity");
 
-        factory.setPackagesToScan(
-                "com.example.CRMTicketing.Entity");
-
-        Properties props =
-                new Properties();
-
-        props.put(
-                "hibernate.dialect",
-                "org.hibernate.dialect.MySQLDialect");
-
-        props.put(
-                "hibernate.show_sql",
-                "true");
-
-        props.put(
-                "hibernate.hbm2ddl.auto",
-                "update");
-
+        Properties props = new Properties();
+        props.put("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
+        props.put("hibernate.show_sql", "true");
+        props.put("hibernate.format_sql", "true");
+        props.put("hibernate.hbm2ddl.auto", "update");
+        
         factory.setHibernateProperties(props);
-
         return factory;
     }
 
     @Bean
     public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
-        return new HibernateTransactionManager(
-                sessionFactory);
+        return new HibernateTransactionManager(sessionFactory);
     }
 }

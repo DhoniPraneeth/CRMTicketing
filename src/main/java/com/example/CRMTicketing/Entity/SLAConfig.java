@@ -20,7 +20,9 @@ public class SLAConfig {
         private Long slaId;
 
         @Enumerated(EnumType.STRING)
-        @Column(unique = true)
+        @Column(unique = true,
+                name = "priority"
+        )
         private Priority priority;
 
         @Column(name = "response_time_hours")
@@ -29,6 +31,5 @@ public class SLAConfig {
         @Column(name = "resolution_time_hours")
         private Integer resolutionTimeHours;
 
-        @OneToMany(mappedBy = "slaConfig")
-        private List<Ticket> tickets;
+        private List<Long> tickets;
 }

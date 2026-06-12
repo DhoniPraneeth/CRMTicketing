@@ -14,15 +14,26 @@ import java.time.LocalDateTime;
 @Table(name = "Comment")
 public class Comment {
     @Id
-    private String commentId;
-
+    @Column(
+            name="comment_id"
+    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long commentId;
     @Column(nullable = false,
-            columnDefinition = "TEXT")
+            columnDefinition = "TEXT",
+            name = "message")
     private String message;
+    @Column(
+            name = "commented_by"
+    )
     private String commentedBy;
+    @Column(
+            name = "created_at"
+    )
     private LocalDateTime createdAt;
     // Many Comments -> One Ticket
-    @ManyToOne
-    @JoinColumn(name = "ticket_id")
-    private Ticket ticket;
+    @Column(
+            name = "ticket_id"
+    )
+    private Long ticketId;
 }

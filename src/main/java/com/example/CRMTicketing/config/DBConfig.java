@@ -37,6 +37,10 @@ public class DBConfig {
         config.setDriverClassName(driver);
 
         config.setMaximumPoolSize(10);
+        config.setMinimumIdle(2);
+        config.setConnectionTimeout(20000);
+        config.setIdleTimeout(300000);
+        config.setMaxLifetime(1200000);
 
         return new HikariDataSource(config);
     }

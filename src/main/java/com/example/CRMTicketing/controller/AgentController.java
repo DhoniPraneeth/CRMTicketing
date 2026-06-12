@@ -1,77 +1,71 @@
 package com.example.CRMTicketing.controller;
 
-import com.example.CRMTicketing.dto.request.AgentRequestDTO;
-import com.example.CRMTicketing.dto.response.AgentResponseDTO;
+import com.example.CRMTicketing.dto.AgentDTO;
+import com.example.CRMTicketing.exception.BadRequestException;
 import com.example.CRMTicketing.service.AgentService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
+@Validated
 @RestController
 @RequestMapping("/agents")
-@AllArgsConstructor(onConstructor_ = @__())
+@RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 public class AgentController {
-
-    
     private final AgentService agentService;
-
     @PostMapping
-    public ResponseEntity<AgentResponseDTO>
-    createAgent(
-            @Valid
-            @RequestBody
-            AgentRequestDTO dto) {
-
-        return ResponseEntity.ok(
-                agentService.save(dto));
+    public ResponseEntity<AgentDTO> createAgent(
+            @Valid @NotNull @RequestBody AgentDTO dto) {
+        log.info("Creating agent payload: {}", dto.getAgentName());
+        return ResponseEntity.ok(agentService.save(dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AgentResponseDTO>
-    getAgentById(
-            @PathVariable
-            String id) {
-
-        return ResponseEntity.ok(
-                agentService.getById(id));
+    public ResponseEntity<AgentDTO> getAgentById(@PathVariable @NotNull Long id) {
+        log.info("Fetching agent by id: {}", id);
+        return ResponseEntity.ok(agentService.getById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<AgentResponseDTO>>
-    getAllAgents() {
-
+    public ResponseEntity<List<AgentDTO>> getAllAgents() {
+        log.info("Fetching all agents");
         return ResponseEntity.ok(
                 agentService.getAllAgents());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AgentResponseDTO> updateAgent(@PathVariable String id, @Valid @RequestBody AgentRequestDTO dto) {
-        return ResponseEntity.ok(
-                agentService.update(id, dto));
+    public ResponseEntity<AgentDTO> updateAgent(@PathVariable @NotNull Long id,
+                                                @Valid @NotNull @RequestBody AgentDTO dto) {
+        log.info("Updating agent id: {}", id);
+        return ResponseEntity.ok(agentService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String>
-    deleteAgent(
-            @PathVariable String id) {
-
+    public ResponseEntity<String> deleteAgent(@PathVariable @NotNull Long id) {
+        log.info("Deleting agent id: {}", id);
         agentService.delete(id);
-
-        return ResponseEntity.ok(
-                "Agent deleted successfully");
+        return ResponseEntity.ok("Agent deleted successfully");
     }
+
     @GetMapping("/{id}/workload")
-    public ResponseEntity<Integer> getAgentWorkload(@PathVariable String id) {
+    public ResponseEntity<Integer> getAgentWorkload(@PathVariable @NotNull Long id) {
+        log.info("Fetching workload for agent id: {}", id);
         return ResponseEntity.ok(
                 agentService.getAgentWorkload(id)
         );
     }
+
     @GetMapping("/available")
-    public ResponseEntity<List<AgentResponseDTO>> getAvailableAgents() {
+    public ResponseEntity<List<AgentDTO>> getAvailableAgents() {
+        log.info("Fetching available agents");
         return ResponseEntity.ok(agentService.getAvailableAgents());
     }
 

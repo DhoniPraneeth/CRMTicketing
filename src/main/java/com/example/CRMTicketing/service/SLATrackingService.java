@@ -6,6 +6,7 @@ import com.example.CRMTicketing.Enums.Priority;
 import com.example.CRMTicketing.Enums.TicketStatus;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 @Service
-@AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 public class SLATrackingService {
 
     private final TicketDaoImpl ticketDAO;

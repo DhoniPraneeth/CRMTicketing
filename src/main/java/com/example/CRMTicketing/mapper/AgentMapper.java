@@ -1,28 +1,36 @@
 package com.example.CRMTicketing.mapper;
 
 import com.example.CRMTicketing.Entity.Agent;
-import com.example.CRMTicketing.dto.request.AgentRequestDTO;
-import com.example.CRMTicketing.dto.response.AgentResponseDTO;
+import com.example.CRMTicketing.dto.AgentDTO;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AgentMapper {
 
-    public Agent toEntity(AgentRequestDTO dto) {
-
+    public Agent toEntity(AgentDTO dto) {
         Agent agent = new Agent();
-        agent.setAgentName(dto.getName());;
+        agent.setAgentName(dto.getAgentName());
         agent.setEmail(dto.getEmail());
-        agent.setAvailabilityStatus(dto.isAvailable());
+
+        String requestedStatus = dto.getAvaialbleStatus();
+        boolean availability = false;
+        if (requestedStatus != null) {
+            String normalized = requestedStatus.trim().toLowerCase();
+            availability = "available".equals(normalized)
+                    || "avaialble".equals(normalized);
+        }
+        agent.setAvailabilityStatus(availability);
+        agent.setActiveTicketCount(0);
+
         return agent;
     }
 
-    public AgentResponseDTO toResponseDTO(Agent agent) {
-        AgentResponseDTO dto = new AgentResponseDTO();
-        dto.setId(agent.getAgentId());
-        dto.setName(agent.getAgentName());
+    public AgentDTO toDTO(Agent agent) {
+        AgentDTO dto = new AgentDTO();
+        dto.setAgentId(agent.getAgentId());
+        dto.setAgentName(agent.getAgentName());
         dto.setEmail(agent.getEmail());
-        dto.setAvailable(agent.getAvailabilityStatus());
+        dto.setAvaialbleStatus((agent.getAvailabilityStatus())?"Avaialble":"Not Avaialable");
         return dto;
     }
 }

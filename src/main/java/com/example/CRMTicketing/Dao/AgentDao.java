@@ -8,11 +8,11 @@ public interface AgentDao {
 
     void save(Agent agent);
 
-    Agent getById(String id);
+    Agent getById(Long id);
 
     List<Agent> getAllAgents();
 
-    void delete(String id);
+    void delete(Long id);
 
     void update(Agent existing);
 }

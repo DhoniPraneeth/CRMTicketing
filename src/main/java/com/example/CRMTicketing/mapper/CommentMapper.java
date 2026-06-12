@@ -1,33 +1,30 @@
 package com.example.CRMTicketing.mapper;
 
 import com.example.CRMTicketing.Entity.Comment;
-import com.example.CRMTicketing.dto.request.CommentRequestDTO;
-import com.example.CRMTicketing.dto.response.CommentResponseDTO;
+import com.example.CRMTicketing.dto.CommentDTO;
+
 import org.springframework.stereotype.Component;
 
 @Component
 public class CommentMapper {
 
-    public Comment toEntity(CommentRequestDTO dto) {
+    public Comment toEntity(CommentDTO dto) {
 
         Comment comment = new Comment();
-
         comment.setMessage(dto.getMessage());
-
+        comment.setCommentedBy(dto.getCommentedBy());
+        comment.setTicketId(dto.getTicketId());
         return comment;
     }
 
-    public CommentResponseDTO toResponseDTO(Comment comment) {
+    public CommentDTO toDTO(Comment comment) {
 
-        CommentResponseDTO dto = new CommentResponseDTO();
-
-        dto.setId(comment.getCommentId());
+        CommentDTO dto = new CommentDTO();
+        dto.setCommentedBy(comment.getCommentedBy());
         dto.setMessage(comment.getMessage());
-
-        if (comment.getTicket() != null) {
-            dto.setTicketId(Long.valueOf(comment.getTicket().getTicketId()));
-        }
-
+        dto.setTicketId(comment.getTicketId());
         return dto;
     }
+
+
 }

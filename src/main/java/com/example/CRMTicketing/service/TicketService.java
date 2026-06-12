@@ -1,254 +1,217 @@
 package com.example.CRMTicketing.service;
 
 import com.example.CRMTicketing.Dao.AgentDao;
-import com.example.CRMTicketing.Dao.AgentDaoImpl;
-import com.example.CRMTicketing.Dao.TicketDao;
 import com.example.CRMTicketing.Dao.TicketDaoImpl;
 import com.example.CRMTicketing.Entity.Agent;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.Priority;
 import com.example.CRMTicketing.Enums.TicketStatus;
-import com.example.CRMTicketing.dto.response.TicketResponseDTO;
-import com.example.CRMTicketing.dto.request.TicketRequestDTO;
+import com.example.CRMTicketing.dto.TicketDTO;
+import com.example.CRMTicketing.dto.*;
+import com.example.CRMTicketing.exception.BadRequestException;
+import com.example.CRMTicketing.exception.ResourceNotFoundException;
+import com.example.CRMTicketing.kafka.KafkaConsumerService;
+import com.example.CRMTicketing.kafka.KafkaProducerService;
 import com.example.CRMTicketing.mapper.TicketMapper;
-import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.example.CRMTicketing.Enums.Priority.*;
-
+@Slf4j
 @Service
-@AllArgsConstructor(onConstructor_ = @__(@Autowired))
+@RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 @Transactional
-public class TicketService{
+public class TicketService {
+
     private final TicketDaoImpl ticketDao;
-    private final AgentDaoImpl agentDao;
+    @Qualifier("AgentRepo")
+    private final AgentDao agentDao;
     private final TicketMapper ticketMapper;
-    public TicketResponseDTO save(
-            TicketRequestDTO dto) {
+    private final KafkaProducerService kafkaProducerService;
+    private final KafkaConsumerService kafkaConsumerService;
 
-        // Convert DTO -> Entity
-        Ticket ticket =
-                ticketMapper.toEntity(dto);
+    public void produceMsg(String name,String ticketId,String action){
+        HistoryEvent event=new HistoryEvent();
+        log.info("Fuck u Name"+name+"ticketId"+ticketId);
+        event.setObjectType(name);
+        event.setObjectId(ticketId);
+        event.setAction(action);
+        kafkaProducerService.publishHistoryEvent(event);
+        log.info(event+"Message");
+        kafkaConsumerService.consume(event);
+    }
 
-        // Generate Ticket ID
-        ticket.setTicketId(
-                "TKT-" +
-                        UUID.randomUUID()
-                                .toString()
-                                .substring(0, 8)
-                                .toUpperCase()
-        );
+    public TicketDTO save(TicketDTO dto) {
+        validateTicketDto(dto);
 
-        // Set timestamps
-        ticket.setCreatedAt(
-                LocalDateTime.now());
+        Ticket ticket = ticketMapper.toEntity(dto);
+        ticket.setCategory(dto.getCategory());
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket.setUpdatedAt(LocalDateTime.now());
+        ticket.setStatus(TicketStatus.OPEN);
+        ticket.setSla_deadline(calculateSLADeadline(ticket.getPriority()));
 
-        ticket.setUpdatedAt(
-                LocalDateTime.now());
-
-        // Default Status
-        ticket.setStatus(
-                TicketStatus.OPEN);
-
-        // Calculate SLA Deadline
-        LocalDateTime slaDeadline =
-                calculateSLADeadline(
-                        dto.getPriority());
-
-        ticket.setSla_deadline(
-                slaDeadline);
-
-        // Auto assign best agent
-        Agent bestAgent =
-                assignBestAgent();
-
+        Agent bestAgent = assignBestAgent();
         if (bestAgent != null) {
-
-            ticket.setAgent(bestAgent);
-
-            // increase workload
-            bestAgent.setActiveTicketCount(
-                    bestAgent
-                            .getActiveTicketCount()
-                            + 1);
-
+            ticket.setAgentId(bestAgent.getAgentId());
+            bestAgent.setActiveTicketCount(Math.max(0, safeCount(bestAgent.getActiveTicketCount()) + 1));
             agentDao.update(bestAgent);
-
-            ticket.setStatus(
-                    TicketStatus.ASSIGNED);
+            ticket.setStatus(TicketStatus.ASSIGNED);
         }
 
-        // Save ticket
         ticketDao.save(ticket);
-
-        return ticketMapper
-                .toResponseDTO(ticket);
+        produceMsg("Ticket",ticket.getTicketId()+"","CREATE");
+        return ticketMapper.toDTO(ticket);
     }
-    private LocalDateTime calculateSLADeadline(Priority priority) {
 
-        LocalDateTime now =
-                LocalDateTime.now();
-
-        return switch (priority) {
-
-            case LOW ->
-                    now.plusHours(72);
-
-            case MEDIUM ->
-                    now.plusHours(48);
-
-            case HIGH ->
-                    now.plusHours(24);
-        };
-    }
-    private Agent assignBestAgent() {
-
-        List<Agent> agents =
-                agentDao.getAllAgents();
-
-        if (agents.isEmpty()) {
-            return null;
+    public TicketDTO getById(Long id) {
+        validateId(id, "Ticket id is required");
+        Ticket ticket = ticketDao.getById(id);
+        if (ticket == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + id);
         }
 
-        return agents.stream()
-                .min(Comparator.comparing(
-                        Agent::getActiveTicketCount))
-                .orElse(null);
+        return ticketMapper.toDTO(ticket);
     }
 
-
-    public TicketResponseDTO getById(String id) {
-        return ticketMapper
-                .toResponseDTO(
-                        ticketDao.getById(id));
-    }
-
-   
-    public List<TicketResponseDTO>
-    getAllTickets() {
-
-        return ticketDao
-                .getAllTickets()
-                .stream()
-                .map(ticketMapper::toResponseDTO)
+    public List<TicketDTO> getAllTickets() {
+        return ticketDao.getAllTickets().stream()
+                .map(ticketMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    
-    public TicketResponseDTO update(
-            String id,
-            TicketRequestDTO dto) {
+    public TicketDTO update(Long id, TicketDTO dto) {
+        validateId(id, "Ticket id is required");
+        validateTicketDto(dto);
 
-        Ticket existing =
-                ticketDao.getById(id);
+        Ticket existing = ticketDao.getById(id);
+        produceMsg("Ticket",String.valueOf(id),"UPDATE");
+        if (existing == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + id);
+        }
 
-        existing.setTitle(
-                dto.getTitle());
-
-        existing.setDescription(
-                dto.getDescription());
-
-        existing.setPriority(
-                dto.getPriority());
-
+        existing.setTitle(dto.getTitle());
+        existing.setDescription(dto.getDescription());
+        existing.setPriority(dto.getPriority());
         ticketDao.update(existing);
 
-        return ticketMapper
-                .toResponseDTO(existing);
+        return ticketMapper.toDTO(existing);
     }
 
-    
-    public void delete(
-            String id) {
+    public void delete(Long id) {
+        validateId(id, "Ticket id is required");
+        Ticket ticket = ticketDao.getById(id);
+        produceMsg("Ticket",String.valueOf(ticket.getTicketId()),"Delete");
 
         ticketDao.delete(id);
     }
 
+    public void assignAgent(Long ticketId, Long agentId) {
+        validateId(ticketId, "Ticket id is required");
+        validateId(agentId, "Agent id is required");
 
-    public void assignAgent(String ticketId, String agentId) {
-        Ticket ticket =
-                ticketDao.getById(ticketId);
-
-        Agent agent =
-                agentDao.getById(agentId);
-
-        // remove old agent load
-        if (ticket.getAgent() != null) {
-
-            Agent oldAgent =
-                    ticket.getAgent();
-
-            oldAgent.setActiveTicketCount(
-                    oldAgent
-                            .getActiveTicketCount()
-                            - 1);
-
-            agentDao.update(oldAgent);
+        Ticket ticket = ticketDao.getById(ticketId);
+        if (ticket == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + ticketId);
         }
 
-        // assign new agent
-        ticket.setAgent(agent);
+        Agent agent = agentDao.getById(agentId);
+        if (agent == null) {
+            throw new ResourceNotFoundException("Agent not found with id " + agentId);
+        }
 
-        // increase workload
-        agent.setActiveTicketCount(
-                agent.getActiveTicketCount()
-                        + 1);
+        if (ticket.getAgentId() != null) {
+            Agent assignedAgent = agentDao.getById(ticket.getAgentId());
+            if (assignedAgent != null) {
+                assignedAgent.setActiveTicketCount(Math.max(0, safeCount(assignedAgent.getActiveTicketCount()) - 1));
+                agentDao.update(assignedAgent);
+            }
+        }
 
-        ticket.setStatus(
-                TicketStatus.ASSIGNED);
+        ticket.setAgentId(agent.getAgentId());
+        agent.setActiveTicketCount(safeCount(agent.getActiveTicketCount()) + 1);
+        ticket.setStatus(TicketStatus.ASSIGNED);
 
         agentDao.update(agent);
-
         ticketDao.update(ticket);
     }
 
-    public void resolveTicket(
-            String ticketId) {
+    public void resolveTicket(Long ticketId) {
+        validateId(ticketId, "Ticket id is required");
 
-        Ticket ticket =
-                ticketDao.getById(ticketId);
-
-        ticket.setStatus(
-                TicketStatus.RESOLVED);
-
-        Agent agent =
-                ticket.getAgent();
-
-        if (agent != null) {
-
-            agent.setActiveTicketCount(
-                    agent.getActiveTicketCount()
-                            - 1);
-
-            agentDao.update(agent);
+        Ticket ticket = ticketDao.getById(ticketId);
+        if (ticket == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + ticketId);
         }
 
-        ticket.setUpdatedAt(
-                LocalDateTime.now());
-
+        ticket.setStatus(TicketStatus.RESOLVED);
+        Agent agent = ticket.getAgentId() == null ? null : agentDao.getById(ticket.getAgentId());
+        if (agent != null) {
+            agent.setActiveTicketCount(Math.max(0, safeCount(agent.getActiveTicketCount()) - 1));
+            agentDao.update(agent);
+        }
+        ticket.setUpdatedAt(LocalDateTime.now());
         ticketDao.update(ticket);
     }
 
+    public void closeTicket(Long ticketId) {
+        validateId(ticketId, "Ticket id is required");
 
+        Ticket ticket = ticketDao.getById(ticketId);
+        if (ticket == null) {
+            throw new ResourceNotFoundException("Ticket not found with id " + ticketId);
+        }
 
-    public void closeTicket(
-            String ticketId) {
-
-        Ticket ticket =
-                ticketDao.getById(ticketId);
-
-        ticket.setStatus(
-                TicketStatus.CLOSED);
-
+        ticket.setStatus(TicketStatus.CLOSED);
         ticketDao.update(ticket);
+    }
+
+    private LocalDateTime calculateSLADeadline(Priority priority) {
+        LocalDateTime now = LocalDateTime.now();
+        return switch (priority) {
+            case LOW -> now.plusHours(72);
+            case MEDIUM -> now.plusHours(48);
+            case HIGH -> now.plusHours(24);
+        };
+    }
+
+    private Agent assignBestAgent() {
+        List<Agent> agents = agentDao.getAllAgents();
+        if (agents.isEmpty()) {
+            return null;
+        }
+        return agents.stream()
+                .min(Comparator.comparingInt(agent -> safeCount(agent.getActiveTicketCount())))
+                .orElse(null);
+    }
+
+    private int safeCount(Integer count) {
+        return count == null ? 0 : count;
+    }
+
+    private void validateTicketDto(TicketDTO dto) {
+        if (dto == null) {
+            throw new BadRequestException("Ticket payload is required");
+        }
+        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+            throw new BadRequestException("Ticket title is required");
+        }
+        if (dto.getPriority() == null) {
+            throw new BadRequestException("Ticket priority is required");
+        }
+    }
+
+    private void validateId(Long id, String message) {
+        if (id == null) {
+            throw new BadRequestException(message);
+        }
     }
 }

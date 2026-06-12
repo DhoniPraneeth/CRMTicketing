@@ -1,38 +1,35 @@
 package com.example.CRMTicketing.mapper;
 
 import com.example.CRMTicketing.Entity.Ticket;
-import com.example.CRMTicketing.dto.request.TicketRequestDTO;
-import com.example.CRMTicketing.dto.response.TicketResponseDTO;
+import com.example.CRMTicketing.dto.TicketDTO;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TicketMapper {
 
-    public Ticket toEntity(TicketRequestDTO dto) {
-
+    public Ticket toEntity(TicketDTO dto) {
+        if (dto == null) {
+            return null;
+        }
         Ticket ticket = new Ticket();
-
         ticket.setTitle(dto.getTitle());
         ticket.setDescription(dto.getDescription());
+        ticket.setCategory(dto.getCategory());
         ticket.setPriority(dto.getPriority());
-
         return ticket;
     }
 
-    public TicketResponseDTO toResponseDTO(Ticket ticket) {
+    public TicketDTO toDTO(Ticket ticket) {
+        if (ticket == null) {
+            return null;
+        }
 
-        TicketResponseDTO dto = new TicketResponseDTO();
-
-        dto.setId(ticket.getTicketId());
+        TicketDTO dto = new TicketDTO();
+        dto.setTicketId(ticket.getTicketId());
         dto.setTitle(ticket.getTitle());
         dto.setDescription(ticket.getDescription());
         dto.setPriority(ticket.getPriority());
-        dto.setStatus(ticket.getStatus());
-
-        if (ticket.getAgent() != null) {
-            dto.setAgentName(ticket.getAgent().getAgentName());
-        }
-
+        dto.setTicketStatus(ticket.getStatus());
         return dto;
     }
 }

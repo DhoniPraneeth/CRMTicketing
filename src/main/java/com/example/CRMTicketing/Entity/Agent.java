@@ -16,17 +16,21 @@ import java.util.List;
 @NoArgsConstructor
 public class Agent {
     @Id
-    private String agentId;
-    @Column(nullable = false)
-    @NotNull
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "agent_id")
+    private Long agentId;
+    @Column(nullable = false, name = "agent_name")
     private String agentName;
-    @Email
+    @Column(name = "email")
     private String email;
+    @Column(
+            name = "availability_status"
+    )
     private Boolean availabilityStatus;
-    @Column(name = "active_ticket_count")
+    @Column(
+            name = "active_ticket_count"
+    )
     private Integer activeTicketCount;
-    @OneToMany(mappedBy = "agent",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    private List<Ticket> tickets;
+    @Transient
+    private List<Long> tickets;
 }
