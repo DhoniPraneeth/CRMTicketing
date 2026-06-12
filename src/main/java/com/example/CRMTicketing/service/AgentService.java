@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.CRMTicketing.cache.UnifiedCacheService;
+import static com.example.CRMTicketing.cache.UnifiedCacheService.CacheType;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +30,7 @@ public class AgentService {
     private final AgentDao agentDao;
     private final AgentMapper agentMapper;
     private final TicketDaoImpl ticketDao;
+    private final UnifiedCacheService cacheService;
 
     public AgentDTO save(AgentDTO dto) {
         validateAgentDto(dto);
@@ -39,22 +42,45 @@ public class AgentService {
             agent.setAvailabilityStatus(true);
         }
         agentDao.save(agent);
+        // persist to Redis for write-through guarantees and update LRU
+        cacheService.put(UnifiedCacheService.agentKey(agent.getAgentId()), agentMapper.toDTO(agent), CacheType.REDIS);
+        cacheService.put(UnifiedCacheService.agentKey(agent.getAgentId()), agentMapper.toDTO(agent), CacheType.LRU);
         return agentMapper.toDTO(agent);
     }
 
     public AgentDTO getById(Long id) {
         validateId(id, "Agent id is required");
+        // Try LRU first
+        AgentDTO cached = cacheService.get(UnifiedCacheService.agentKey(id), AgentDTO.class, CacheType.LRU);
+        if (cached != null) return cached;
+
         Agent agent = agentDao.getById(id);
         if (agent == null) {
             throw new ResourceNotFoundException("Agent not found with id " + id);
         }
-        return agentMapper.toDTO(agent);
+
+        AgentDTO dto = agentMapper.toDTO(agent);
+        cacheService.put(UnifiedCacheService.agentKey(id), dto, CacheType.LRU);
+        cacheService.put(UnifiedCacheService.agentKey(id), dto, CacheType.REDIS);
+        return dto;
     }
 
     public List<AgentDTO> getAllAgents() {
-        return agentDao.getAllAgents().stream()
+        Object cached = cacheService.get("Agent:list:all", Object.class, CacheType.LRU);
+        if (cached instanceof java.util.List) {
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.List<AgentDTO> list = (java.util.List<AgentDTO>) cached;
+                return list;
+            } catch (ClassCastException ignored) {
+            }
+        }
+
+        java.util.List<AgentDTO> dtos = agentDao.getAllAgents().stream()
                 .map(agentMapper::toDTO)
                 .collect(Collectors.toList());
+        cacheService.put("Agent:list:all", dtos, CacheType.LRU);
+        return dtos;
     }
 
     public AgentDTO update(Long id, AgentDTO dto) {
@@ -84,6 +110,9 @@ public class AgentService {
             throw new ResourceNotFoundException("Agent not found with id " + id);
         }
         agentDao.delete(id);
+        cacheService.evict(UnifiedCacheService.agentKey(id), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.agentKey(id), CacheType.LRU);
+        cacheService.evict("Agent:list:all", CacheType.LRU);
     }
 
     public void resolveTicket(Long ticketId) {

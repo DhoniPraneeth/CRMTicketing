@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.CRMTicketing.cache.UnifiedCacheService;
+import static com.example.CRMTicketing.cache.UnifiedCacheService.CacheType;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -37,10 +39,11 @@ public class TicketService {
     private final TicketMapper ticketMapper;
     private final KafkaProducerService kafkaProducerService;
     private final KafkaConsumerService kafkaConsumerService;
+    private final UnifiedCacheService cacheService;
 
     public void produceMsg(String name,String ticketId,String action){
         HistoryEvent event=new HistoryEvent();
-        log.info("Fuck u Name"+name+"ticketId"+ticketId);
+        log.info("Name"+name+"ticketId"+ticketId);
         event.setObjectType(name);
         event.setObjectId(ticketId);
         event.setAction(action);
@@ -68,24 +71,45 @@ public class TicketService {
         }
 
         ticketDao.save(ticket);
+        // write-through Redis for ticket entity and evict list cache
+        cacheService.put(UnifiedCacheService.ticketKey(ticket.getTicketId()), ticketMapper.toDTO(ticket), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
         produceMsg("Ticket",ticket.getTicketId()+"","CREATE");
         return ticketMapper.toDTO(ticket);
     }
 
     public TicketDTO getById(Long id) {
         validateId(id, "Ticket id is required");
+        // Try Redis cache first
+        TicketDTO cached = cacheService.get(UnifiedCacheService.ticketKey(id), TicketDTO.class, CacheType.REDIS);
+        if (cached != null) return cached;
+
         Ticket ticket = ticketDao.getById(id);
         if (ticket == null) {
             throw new ResourceNotFoundException("Ticket not found with id " + id);
         }
 
-        return ticketMapper.toDTO(ticket);
+        TicketDTO dto = ticketMapper.toDTO(ticket);
+        cacheService.put(UnifiedCacheService.ticketKey(id), dto, CacheType.REDIS);
+        return dto;
     }
 
     public List<TicketDTO> getAllTickets() {
-        return ticketDao.getAllTickets().stream()
+        Object cached = cacheService.get(UnifiedCacheService.ticketListKey(), Object.class, CacheType.REDIS);
+        if (cached instanceof java.util.List) {
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.List<TicketDTO> list = (java.util.List<TicketDTO>) cached;
+                return list;
+            } catch (ClassCastException ignored) {
+            }
+        }
+
+        java.util.List<TicketDTO> dtos = ticketDao.getAllTickets().stream()
                 .map(ticketMapper::toDTO)
                 .collect(Collectors.toList());
+        cacheService.put(UnifiedCacheService.ticketListKey(), dtos, CacheType.REDIS);
+        return dtos;
     }
 
     public TicketDTO update(Long id, TicketDTO dto) {
@@ -103,6 +127,10 @@ public class TicketService {
         existing.setPriority(dto.getPriority());
         ticketDao.update(existing);
 
+        // update redis cache and evict list
+        cacheService.put(UnifiedCacheService.ticketKey(id), ticketMapper.toDTO(existing), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
+
         return ticketMapper.toDTO(existing);
     }
 
@@ -112,6 +140,8 @@ public class TicketService {
         produceMsg("Ticket",String.valueOf(ticket.getTicketId()),"Delete");
 
         ticketDao.delete(id);
+        cacheService.evict(UnifiedCacheService.ticketKey(id), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
     }
 
     public void assignAgent(Long ticketId, Long agentId) {
@@ -142,6 +172,8 @@ public class TicketService {
 
         agentDao.update(agent);
         ticketDao.update(ticket);
+        cacheService.put(UnifiedCacheService.ticketKey(ticketId), ticketMapper.toDTO(ticket), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
     }
 
     public void resolveTicket(Long ticketId) {
@@ -160,6 +192,8 @@ public class TicketService {
         }
         ticket.setUpdatedAt(LocalDateTime.now());
         ticketDao.update(ticket);
+        cacheService.put(UnifiedCacheService.ticketKey(ticketId), ticketMapper.toDTO(ticket), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
     }
 
     public void closeTicket(Long ticketId) {
@@ -172,6 +206,8 @@ public class TicketService {
 
         ticket.setStatus(TicketStatus.CLOSED);
         ticketDao.update(ticket);
+        cacheService.put(UnifiedCacheService.ticketKey(ticketId), ticketMapper.toDTO(ticket), CacheType.REDIS);
+        cacheService.evict(UnifiedCacheService.ticketListKey(), CacheType.REDIS);
     }
 
     private LocalDateTime calculateSLADeadline(Priority priority) {

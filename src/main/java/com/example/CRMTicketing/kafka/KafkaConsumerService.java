@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -18,6 +19,7 @@ public class KafkaConsumerService {
     @KafkaListener(
             topics = "history-events",
             groupId = "crm-group")
+    @Transactional
     public void consume(HistoryEvent event) {
 
         History history =new History();
