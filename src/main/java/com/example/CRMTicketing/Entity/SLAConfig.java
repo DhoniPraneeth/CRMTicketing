@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "Sla_config")
+@Table(name = "sla_config")
 public class SLAConfig {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)

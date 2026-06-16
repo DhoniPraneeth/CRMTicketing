@@ -15,7 +15,7 @@ import java.time.Duration;
 
 @Configuration
 public class CacheConfig {
-
+    
     @Value("${spring.redis.host:localhost}")
     private String redisHost;
 

@@ -8,10 +8,8 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-    @Bean
+    @Bean //Bean for creation of new topic
     public NewTopic historyTopic() {
-
-
         return TopicBuilder
                 .name("history-events")
                 .partitions(1)

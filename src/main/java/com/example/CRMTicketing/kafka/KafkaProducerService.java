@@ -1,6 +1,6 @@
 package com.example.CRMTicketing.kafka;
 
-import com.example.CRMTicketing.dto.HistoryEvent;
+import com.example.CRMTicketing.Entity.HistoryEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;

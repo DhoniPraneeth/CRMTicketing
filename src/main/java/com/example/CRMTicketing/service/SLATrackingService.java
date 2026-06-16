@@ -1,15 +1,15 @@
 package com.example.CRMTicketing.service;
 
-import com.example.CRMTicketing.Dao.TicketDaoImpl;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.Priority;
 import com.example.CRMTicketing.Enums.TicketStatus;
+import com.example.CRMTicketing.dao.DaoImpl;
 import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -17,8 +17,7 @@ import java.util.concurrent.ExecutorService;
 @Service
 @RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 public class SLATrackingService {
-
-    private final TicketDaoImpl ticketDAO;
+    private final DaoImpl<Ticket> ticketDAO;
     private final ExecutorService executorService;
 
     @PostConstruct
@@ -44,16 +43,16 @@ public class SLATrackingService {
     private void checkSLABreach() {
 
         List<Ticket> tickets =
-                ticketDAO.getActiveTickets();
+                ticketDAO.get(Ticket.class,100, 0);
 
-        LocalDateTime now =
-                LocalDateTime.now();
+        Timestamp now =
+                Timestamp.valueOf(LocalDateTime.now());
 
         for (Ticket ticket : tickets) {
 
             if (ticket.getSla_deadline() != null
                     &&
-                    now.isAfter(
+                    now.after(
                             ticket.getSla_deadline())) {
 
                 ticket.setStatus(
@@ -61,7 +60,7 @@ public class SLATrackingService {
 
                 escalatePriority(ticket);
 
-                ticketDAO.update(ticket);
+                ticketDAO.saveOrUpdate(ticket);
 
                 System.out.println(
                         "SLA breached for ticket: "

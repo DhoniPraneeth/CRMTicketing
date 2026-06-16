@@ -3,6 +3,7 @@ package com.example.CRMTicketing.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,6 +15,7 @@ public class History {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long id;
 
     private String objectType;
@@ -22,5 +24,5 @@ public class History {
 
     private String action;
 
-    private LocalDateTime createdAt;
+    private Timestamp createdAt;
 }

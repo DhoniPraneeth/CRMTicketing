@@ -21,7 +21,6 @@ public class LruCacheManager {
     public synchronized void put(String key, Object value) {
         cache.put(key, value);
     }
-
     @SuppressWarnings("unchecked")
     public synchronized <T> T get(String key, Class<T> clazz) {
         Object v = cache.get(key);

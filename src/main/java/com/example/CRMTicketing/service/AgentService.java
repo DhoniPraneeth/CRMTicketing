@@ -1,168 +1,245 @@
 package com.example.CRMTicketing.service;
 
-import com.example.CRMTicketing.Dao.AgentDao;
-import com.example.CRMTicketing.Dao.TicketDaoImpl;
+import com.example.CRMTicketing.dao.DaoImpl;
 import com.example.CRMTicketing.Entity.Agent;
 import com.example.CRMTicketing.Entity.Ticket;
 import com.example.CRMTicketing.Enums.TicketStatus;
-import com.example.CRMTicketing.dto.AgentDTO;
+import com.example.CRMTicketing.dao.Fetcher;
 import com.example.CRMTicketing.exception.BadRequestException;
 import com.example.CRMTicketing.exception.ResourceNotFoundException;
-import com.example.CRMTicketing.mapper.AgentMapper;
+import com.example.CRMTicketing.cache.UnifiedCacheService;
+
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.CRMTicketing.cache.UnifiedCacheService;
+
 import static com.example.CRMTicketing.cache.UnifiedCacheService.CacheType;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 @Transactional
+@Slf4j
 public class AgentService {
 
-    @Qualifier("AgentRepo")
-    private final AgentDao agentDao;
-    private final AgentMapper agentMapper;
-    private final TicketDaoImpl ticketDao;
+    private final DaoImpl<Agent> dao;
+    private final DaoImpl<Ticket> ticketDao;
     private final UnifiedCacheService cacheService;
+    private final Fetcher<Agent> fetcher;
 
-    public AgentDTO save(AgentDTO dto) {
-        validateAgentDto(dto);
-        Agent agent = agentMapper.toEntity(dto);
-        if (agent.getActiveTicketCount() == null) {
-            agent.setActiveTicketCount(0);
-        }
-        if (agent.getAvailabilityStatus() == null) {
-            agent.setAvailabilityStatus(true);
-        }
-        agentDao.save(agent);
-        // persist to Redis for write-through guarantees and update LRU
-        cacheService.put(UnifiedCacheService.agentKey(agent.getAgentId()), agentMapper.toDTO(agent), CacheType.REDIS);
-        cacheService.put(UnifiedCacheService.agentKey(agent.getAgentId()), agentMapper.toDTO(agent), CacheType.LRU);
-        return agentMapper.toDTO(agent);
-    }
+    public boolean save(Agent obj) {
 
-    public AgentDTO getById(Long id) {
-        validateId(id, "Agent id is required");
-        // Try LRU first
-        AgentDTO cached = cacheService.get(UnifiedCacheService.agentKey(id), AgentDTO.class, CacheType.LRU);
-        if (cached != null) return cached;
-
-        Agent agent = agentDao.getById(id);
-        if (agent == null) {
-            throw new ResourceNotFoundException("Agent not found with id " + id);
-        }
-
-        AgentDTO dto = agentMapper.toDTO(agent);
-        cacheService.put(UnifiedCacheService.agentKey(id), dto, CacheType.LRU);
-        cacheService.put(UnifiedCacheService.agentKey(id), dto, CacheType.REDIS);
-        return dto;
-    }
-
-    public List<AgentDTO> getAllAgents() {
-        Object cached = cacheService.get("Agent:list:all", Object.class, CacheType.LRU);
-        if (cached instanceof java.util.List) {
-            try {
-                @SuppressWarnings("unchecked")
-                java.util.List<AgentDTO> list = (java.util.List<AgentDTO>) cached;
-                return list;
-            } catch (ClassCastException ignored) {
+        validateobj(obj);
+        if(!fetcher.contains(obj.getId()+"-AGT")) {
+            if (obj.getActiveTicketCount() == null) {
+                obj.setActiveTicketCount(0);
             }
+            if (obj.getAvailabilityStatus() == null) {
+                obj.setAvailabilityStatus(true);
+            }
+        }else{
+            Agent agent=fetcher.getById(obj.getId()+"-CMT");
+            obj.setAgentId(agent.getAgentId());
         }
+        fetcher.save(obj.getId()+"-CMT",obj);
+        dao.saveOrUpdate(obj);
+        log.info("Save/Updated: "+obj);
+        cacheService.put(
+                UnifiedCacheService.agentKey(obj.getAgentId()),
+                obj,
+                CacheType.REDIS
+        );
 
-        java.util.List<AgentDTO> dtos = agentDao.getAllAgents().stream()
-                .map(agentMapper::toDTO)
-                .collect(Collectors.toList());
-        cacheService.put("Agent:list:all", dtos, CacheType.LRU);
-        return dtos;
+        cacheService.put(
+                UnifiedCacheService.agentKey(obj.getAgentId()),
+                obj,
+                CacheType.LRU
+        );
+
+        return true;
     }
 
-    public AgentDTO update(Long id, AgentDTO dto) {
-        validateId(id, "Agent id is required");
-        validateAgentDto(dto);
+    public Agent getById(Long id) {
 
-        Agent existing = agentDao.getById(id);
-        if (existing == null) {
-            throw new ResourceNotFoundException("Agent not found with id " + id);
+        validateId(id, "obj id is required");
+
+        Agent cached = cacheService.get(
+                UnifiedCacheService.agentKey(id),
+                Agent.class,
+                CacheType.LRU
+        );
+
+        if (cached != null) {
+            log.info(CacheType.LRU + " Cache Hit");
+            return cached;
         }
 
-        existing.setAgentName(dto.getAgentName());
-        existing.setEmail(dto.getEmail());
-        existing.setAvailabilityStatus(mapAvailability(dto.getAvaialbleStatus()));
-        if (existing.getActiveTicketCount() == null) {
-            existing.setActiveTicketCount(0);
+        Agent obj = dao.getById(Agent.class, id);
+
+        if (obj == null) {
+            throw new ResourceNotFoundException(
+                    "obj not found with id " + id
+            );
         }
 
-        agentDao.update(existing);
-        return agentMapper.toDTO(existing);
+        log.info(CacheType.LRU + " Cache Miss");
+
+        cacheService.put(
+                UnifiedCacheService.agentKey(id),
+                obj,
+                CacheType.LRU
+        );
+
+        cacheService.put(
+                UnifiedCacheService.agentKey(id),
+                obj,
+                CacheType.REDIS
+        );
+
+        return obj;
+    }
+
+    public List<Agent> getAllAgents() {
+        List<Agent> objs = dao.get(Agent.class,100, 0);
+        log.debug("Agents: "+objs);
+        return objs;
+    }
+
+    @PostConstruct
+    public void loadDataFromDB(){
+        List<Agent> agents=getAllAgents();
+        fetcher.saveAll(agents);
     }
 
     public void delete(Long id) {
-        validateId(id, "Agent id is required");
-        Agent agent = agentDao.getById(id);
-        if (agent == null) {
-            throw new ResourceNotFoundException("Agent not found with id " + id);
+
+        validateId(id, "obj id is required");
+
+        Agent obj =
+                dao.getById(Agent.class, id);
+
+        if (obj == null) {
+            throw new ResourceNotFoundException(
+                    "obj not found with id " + id
+            );
         }
-        agentDao.delete(id);
-        cacheService.evict(UnifiedCacheService.agentKey(id), CacheType.REDIS);
-        cacheService.evict(UnifiedCacheService.agentKey(id), CacheType.LRU);
-        cacheService.evict("Agent:list:all", CacheType.LRU);
+
+        dao.deleteById(id,Agent.class);
+
+        cacheService.evict(
+                UnifiedCacheService.agentKey(id),
+                CacheType.REDIS
+        );
+
+        cacheService.evict(
+                UnifiedCacheService.agentKey(id),
+                CacheType.LRU
+        );
+
+        cacheService.evict(
+                "obj:list:all",
+                CacheType.LRU
+        );
     }
 
     public void resolveTicket(Long ticketId) {
+
         validateId(ticketId, "Ticket id is required");
-        Ticket ticket = ticketDao.getById(ticketId);
+
+        Ticket ticket =ticketDao.getById(Ticket.class, ticketId);
         if (ticket == null) {
-            throw new ResourceNotFoundException("Ticket not found with id " + ticketId);
+            throw new ResourceNotFoundException(
+                    "Ticket not found with id " + ticketId
+            );
         }
 
         ticket.setStatus(TicketStatus.RESOLVED);
-        Agent agent = ticket.getAgentId() == null ? null : agentDao.getById(ticket.getAgentId());
-        if (agent != null) {
-            agent.setActiveTicketCount(Math.max(0, safeCount(agent.getActiveTicketCount()) - 1));
-            agentDao.update(agent);
+
+        Agent obj = null;
+
+        if (ticket.getAgentId() != null) {
+            obj = dao.getById(
+                    Agent.class, ticket.getAgentId()
+            );
         }
 
-        ticket.setUpdatedAt(LocalDateTime.now());
-        ticketDao.update(ticket);
-    }
+        if (obj != null) {
+            obj.setActiveTicketCount(
+                    Math.max(
+                            0,
+                            safeCount(obj.getActiveTicketCount()) - 1
+                    )
+            );
 
-    public Integer getAgentWorkload(Long agentId) {
-        validateId(agentId, "Agent id is required");
-        Agent agent = agentDao.getById(agentId);
-        if (agent == null) {
-            throw new ResourceNotFoundException("Agent not found with id " + agentId);
+            dao.saveOrUpdate(obj);
         }
-        return safeCount(agent.getActiveTicketCount());
+
+        ticket.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        ticketDao.saveOrUpdate(ticketId);
     }
 
-    public List<AgentDTO> getAvailableAgents() {
-        return agentDao.getAllAgents().stream()
-                .filter(agent -> Boolean.TRUE.equals(agent.getAvailabilityStatus()))
-                .map(agentMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    public Integer getAgentWorkload(Long AgentId) {
 
-    private void validateAgentDto(AgentDTO dto) {
-        if (dto == null) {
-            throw new BadRequestException("Agent payload is required");
+        validateId(AgentId, "obj id is required");
+
+        Agent obj =
+                dao.getById(Agent.class, AgentId);
+
+        if (obj == null) {
+            throw new ResourceNotFoundException(
+                    "obj not found with id " + AgentId
+            );
         }
-        if (dto.getAgentName() == null || dto.getAgentName().isBlank()) {
-            throw new BadRequestException("Agent name is required");
+
+        return safeCount(obj.getActiveTicketCount());
+    }
+
+    public List<Agent> getAvailableAgents() {
+
+        return dao.get(Agent.class,100,0)
+                .stream()
+                .filter(obj ->
+                        Boolean.TRUE.equals(
+                                obj.getAvailabilityStatus()
+                        )
+                )
+                .toList();
+    }
+
+    private void validateobj(Agent obj) {
+
+        if (obj == null) {
+            throw new BadRequestException(
+                    "obj payload is required"
+            );
+        }
+
+        if (obj.getAgentName() == null
+                || obj.getAgentName().isBlank()) {
+
+            throw new BadRequestException(
+                    "obj name is required"
+            );
         }
     }
 
     private boolean mapAvailability(String status) {
+
         if (status == null) {
             return false;
         }
-        String normalized = status.trim().toLowerCase();
+
+        String normalized =
+                status.trim().toLowerCase();
+
         return "available".equals(normalized)
                 || "avaialble".equals(normalized)
                 || "true".equals(normalized);
@@ -173,8 +250,11 @@ public class AgentService {
     }
 
     private void validateId(Long id, String message) {
+
         if (id == null) {
             throw new BadRequestException(message);
         }
     }
+
+
 }

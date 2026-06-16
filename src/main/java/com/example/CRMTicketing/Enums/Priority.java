@@ -1,7 +1,14 @@
 package com.example.CRMTicketing.Enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum Priority {
     LOW,
     MEDIUM,
-    HIGH
+    HIGH;
+    
+    @JsonCreator
+    public static Priority fromString(String value) {
+        return Priority.valueOf(value.toUpperCase());
+    }
 }

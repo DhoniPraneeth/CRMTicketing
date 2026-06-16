@@ -1,39 +1,31 @@
 package com.example.CRMTicketing.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-@Entity
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "Comment")
+@NoArgsConstructor
+@Entity
+@Table(name = "comment")
 public class Comment {
     @Id
-    @Column(
-            name="comment_id"
-    )
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long commentId;
-    @Column(nullable = false,
-            columnDefinition = "TEXT",
-            name = "message")
+    @Column(name = "comment_id")
+    @JsonIgnore
+    private Long comment_id;
+
+    @NotNull
+    @NotBlank
+    @Column(name = "message")
     private String message;
-    @Column(
-            name = "commented_by"
-    )
-    private String commentedBy;
-    @Column(
-            name = "created_at"
-    )
-    private LocalDateTime createdAt;
-    // Many Comments -> One Ticket
-    @Column(
-            name = "ticket_id"
-    )
-    private Long ticketId;
+
+    @JsonIgnore
+    @Column(name = "fk_ticket_id")
+    private Long ticket_id;
 }

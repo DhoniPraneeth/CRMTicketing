@@ -1,7 +1,9 @@
 package com.example.CRMTicketing.controller;
-import com.example.CRMTicketing.dto.AgentDTO;
-import com.example.CRMTicketing.dto.TicketDTO;
+import com.example.CRMTicketing.Entity.Comment;
+import com.example.CRMTicketing.Entity.Ticket;
+import com.example.CRMTicketing.dao.Fetcher;
 import com.example.CRMTicketing.exception.BadRequestException;
+import com.example.CRMTicketing.service.CommentService;
 import com.example.CRMTicketing.service.TicketService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -22,9 +24,10 @@ import java.util.List;
 public class TicketController {
     
     private final TicketService ticketService;
+    private final CommentService commentService;
     // Create Ticket
     @PostMapping
-    public ResponseEntity<String> createTicket(@Valid @NotNull @RequestBody TicketDTO dto) {
+    public ResponseEntity<String> createOrUpdateTicket(@Valid @NotNull @RequestBody Ticket dto) {
         ticketService.save(dto);
         log.info("Ticket created successfully");
         return ResponseEntity.ok("Ticket is saved");
@@ -32,27 +35,19 @@ public class TicketController {
 
     // Get Ticket By Id
     @GetMapping("/{id}")
-    public ResponseEntity<TicketDTO> getTicketById(@PathVariable @NotNull Long id) {
+    public ResponseEntity<?> getTicketById(@PathVariable @NotNull Long id) {
         log.info("Fetching ticket by id: {}", id);
         return ResponseEntity.ok(ticketService.getById(id));
     }
 
     // Get All Tickets
     @GetMapping
-    public ResponseEntity<List<TicketDTO>> getAllTickets() {
+    public ResponseEntity<List<Ticket>> getAllTickets() {
         log.info("Fetching all tickets");
         return ResponseEntity.ok(
                 ticketService.getAllTickets());
     }
 
-    // Update Ticket
-    @PutMapping("/{id}")
-    public ResponseEntity<TicketDTO> updateTicket(
-            @PathVariable @NotNull Long id,
-            @Valid @NotNull @RequestBody TicketDTO dto) {
-        log.info("Updating ticket id: {}", id);
-        return ResponseEntity.ok(ticketService.update(id, dto));
-    }
 
     // Delete Ticket
     @DeleteMapping("/{id}")
@@ -62,31 +57,23 @@ public class TicketController {
         return ResponseEntity.ok("Ticket deleted successfully");
     }
 
-    // Assign Agent
-    @PutMapping("/{ticketId}/assign")
-    public ResponseEntity<String> assignAgent(@PathVariable @NotNull Long ticketId,
-            @NotNull @RequestBody AgentDTO dto) {
-        if (dto.getAgentId() == null) {
-            throw new BadRequestException("Agent id is required for assignment");
-        }
-        log.info("Assigning agent id {} to ticket id {}", dto.getAgentId(), ticketId);
-        ticketService.assignAgent(ticketId, dto.getAgentId());
-        return ResponseEntity.ok("Agent assigned successfully");
+    @PostMapping("/comment")
+    public ResponseEntity<String> postComment(Long id, Comment comment){
+        Ticket t=ticketService.getById(id);
+        Long ticketId=t.getTicketId();
+        if(t==null&&t.getTicketId()==null)
+            return ResponseEntity.ok("Resource Not Found");
+        if(commentService.postComment(comment,ticketId))
+        return ResponseEntity.ok("Commented on Ticket"+ticketId);
+        return ResponseEntity.badRequest().body("Unable to post comment");
+    }
+    @GetMapping("/comment")
+    public ResponseEntity<?> getComments(Long id){
+        List<Comment> list=commentService.get(id);
+        if(list!=null)
+        return ResponseEntity.ok(list);
+        return ResponseEntity.badRequest().body("No Comments yet");
     }
 
-    // Resolve Ticket
-    @PutMapping("/{ticketId}/resolve")
-    public ResponseEntity<String> resolveTicket(@PathVariable @NotNull Long ticketId) {
-        log.info("Resolving ticket id: {}", ticketId);
-        ticketService.resolveTicket(ticketId);
-        return ResponseEntity.ok("Ticket resolved successfully");
-    }
 
-    // Close Ticket
-    @PutMapping("/{ticketId}/close")
-    public ResponseEntity<String> closeTicket(@PathVariable @NotNull Long ticketId) {
-        log.info("Closing ticket id: {}", ticketId);
-        ticketService.closeTicket(ticketId);
-        return ResponseEntity.ok("Ticket closed successfully");
-    }
 }

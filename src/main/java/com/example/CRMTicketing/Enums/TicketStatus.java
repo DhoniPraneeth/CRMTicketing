@@ -1,5 +1,7 @@
 package com.example.CRMTicketing.Enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum TicketStatus {
     OPEN,
     ASSIGNED,
@@ -7,5 +9,10 @@ public enum TicketStatus {
     RESOLVED,
     CLOSED,
     ESCALATED,
-    SLA_BREACHED
+    SLA_BREACHED;
+
+    @JsonCreator
+    public static Priority fromString(String value) {
+        return Priority.valueOf(value.toUpperCase());
+    }
 }

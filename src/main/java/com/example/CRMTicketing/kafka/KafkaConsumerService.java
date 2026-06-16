@@ -1,13 +1,14 @@
 package com.example.CRMTicketing.kafka;
-import com.example.CRMTicketing.Dao.HistoryDao;
+import com.example.CRMTicketing.dao.HistoryDao;
 import com.example.CRMTicketing.Entity.History;
-import com.example.CRMTicketing.dto.HistoryEvent;
+import com.example.CRMTicketing.Entity.HistoryEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Service
@@ -30,12 +31,10 @@ public class KafkaConsumerService {
 
         history.setAction(event.getAction());
 
-        history.setCreatedAt(LocalDateTime.now());
+        history.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
 
         historyDao.save(history);
 
-        System.out.println(
-                "History Saved: "
-                        + history);
+        System.out.println("History Saved: " + history);
     }
 }
